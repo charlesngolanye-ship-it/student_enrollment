@@ -5,7 +5,6 @@ import com.charlesngolanye.studentenrollment.model.Enrollment;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 public class EnrollmentDAO {
 
@@ -15,7 +14,7 @@ public class EnrollmentDAO {
         this.connection = connection;
     }
 
-    public void createTable() throws SQLException {
+    public void createTable(){
         try (Statement statement = connection.createStatement()) {
             statement.execute("""
                     CREATE TABLE IF NOT EXISTS enrollments (
@@ -28,73 +27,92 @@ public class EnrollmentDAO {
                     )
             """);
 
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
     }
 
-    /*
-     * reject if the course is at capacity or the student is already enrolled - goes to EnrollmentService
-     */
-    public void save(Enrollment enrollment) throws SQLException{
-        String sql = "INSERT INTO enrollments (student_id, course_id, grade) VALUES (?, ?, ?)";
+
+    // Enroll student
+    public void insert(Enrollment enrollment){
+        String sql = "INSERT INTO enrollments (student_id, course_id) VALUES (?, ?)";
         try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setInt(1, enrollment.getStudentId());
             preparedStatement.setInt(2, enrollment.getCourseId());
-            preparedStatement.setDouble(3, enrollment.getGrade()); // set to 0.0 initially? nullable
             preparedStatement.executeUpdate();
+
+        } catch (SQLException e){
+            System.err.println(e.getMessage());
         }
     }
 
-    /*
-     * assign a numeric grade 0-100 - goes to EnrollmentService
-     */
-    public int update(Enrollment enrollment) throws SQLException {
+
+
+    // Assign grade
+    public int assignGrade(int studentId, int courseId, Double grade){
         String sql = "UPDATE enrollments SET grade = ? WHERE student_id = ? AND course_id = ?";
         try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
-            if (enrollment.getGrade() != null) {
-                preparedStatement.setDouble(1, enrollment.getGrade());
-            } else {
-                preparedStatement.setNull(1, Types.DOUBLE);
-            }
-            preparedStatement.setInt(2, enrollment.getStudentId());
-            preparedStatement.setInt(3, enrollment.getCourseId());
+            preparedStatement.setDouble(1, grade);
+            preparedStatement.setInt(2, studentId);
+            preparedStatement.setInt(3, courseId);
             return preparedStatement.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
+        return -1;
     }
 
 
-    public Optional<Enrollment> findEnrollmentByStudentId(int studentId) throws SQLException {
+    public List<Enrollment> findEnrollmentByStudentId(int studentId)  {
+        List<Enrollment> list = new ArrayList<>();
+
         String sql = "SELECT * FROM enrollments WHERE student_id = ?";
         try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setInt(1, studentId);
-            try (ResultSet resultSet = preparedStatement.executeQuery()) {
-                if (resultSet.next()) return Optional.of(mapRow(resultSet));
+            ResultSet rs = preparedStatement.executeQuery();
+            while (rs.next()){
+                Enrollment enrollment = new Enrollment(studentId,rs.getInt("course_id"), rs.getDouble("grade"));
+                list.add(enrollment);
             }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
-        return Optional.empty();
+        return list;
     }
 
-    public Optional<Enrollment> findEnrollmentByCourseId(int courseId) throws SQLException {
+    public List<Enrollment> findEnrollmentByCourseId(int courseId){
+        List<Enrollment> enrollments = new ArrayList<>();
+
         String sql = "SELECT * FROM enrollments WHERE course_id = ?";
         try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setInt(1, courseId);
-            try (ResultSet resultSet = preparedStatement.executeQuery()) {
-                if (resultSet.next()) return Optional.of(mapRow(resultSet));
+            ResultSet resultSet = preparedStatement.executeQuery();
+            while(resultSet.next()){
+                Enrollment enrollment = new Enrollment(resultSet.getInt("student_id"), courseId, resultSet.getDouble("grade"));
+                enrollments.add(enrollment);
             }
+
+        } catch (SQLException e){
+            System.err.println(e.getMessage());
         }
-        return Optional.empty();
+        return enrollments;
     }
 
-    public List<Enrollment> findAllEnrollments() throws SQLException {
+    public List<Enrollment> listEnrollments(){
         List<Enrollment> list = new ArrayList<>();
         String sql = "SELECT * FROM enrollments ORDER BY course_id";
         try(Statement statement = connection.createStatement();
             ResultSet resultSet = statement.executeQuery(sql)) {
             while (resultSet.next()) list.add(mapRow(resultSet));
+
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
         return list;
     }
 
-    public boolean exists (int studentId, int courseId) throws SQLException {
+    public boolean exists (int studentId, int courseId){
         String sql = "SELECT COUNT(*) FROM enrollments WHERE student_id = ? AND course_id = ?";
 
         try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
@@ -106,28 +124,37 @@ public class EnrollmentDAO {
                 return resultSet.getInt(1) > 0;
             }
 
+        } catch (Exception e) {
+            e.printStackTrace();
         }
         return false;
     }
 
 
-    private Enrollment mapRow(ResultSet resultSet) throws SQLException {
-
-        Double grade = resultSet.getObject("grade") != null ? resultSet.getDouble("grade") : null;
-
-        return new Enrollment(
-                resultSet.getInt("student_id"),
-                resultSet.getInt("course_id"),
-                grade
-        );
+    private Enrollment mapRow(ResultSet resultSet){
+        try {
+            Double grade = resultSet.getObject("grade") != null ? resultSet.getDouble("grade") : null;
+            return new Enrollment(
+                    resultSet.getInt("student_id"),
+                    resultSet.getInt("course_id"),
+                    grade
+            );
+        } catch (SQLException e){
+            e.printStackTrace();
+        }
+        return null;
     }
 
-    public int countByCourse(int courseId) throws SQLException {
+    public int countByCourse(int courseId){
         String sql = "SELECT  COUNT(*) FROM enrollments WHERE course_id = ?";
+
         try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setInt(1, courseId);
             ResultSet resultSet = preparedStatement.executeQuery();
             if (resultSet.next()) return resultSet.getInt(1);
+
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
         return 0;
     }

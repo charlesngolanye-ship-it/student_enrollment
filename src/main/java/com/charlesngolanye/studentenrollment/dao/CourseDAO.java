@@ -15,7 +15,7 @@ public class CourseDAO {
         this.connection = connection;
     }
 
-    public void createTable() throws SQLException {
+    public void createTable(){
         try (Statement statement = connection.createStatement()) {
             statement.execute("""
                     CREATE TABLE IF NOT EXISTS courses (
@@ -26,58 +26,89 @@ public class CourseDAO {
                     )
             """);
 
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
     }
 
-    public void save(Course course) throws SQLException{
+    public void save(Course course){
         String sql = "INSERT INTO courses (code, title, capacity) VALUES (?, ?, ?)";
         try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setString(1, course.getCode());
             preparedStatement.setString(2, course.getTitle());
             preparedStatement.setInt(3, course.getCapacity());
             preparedStatement.executeUpdate();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
     }
 
-    public Optional<Course> findById(int id) throws SQLException {
+    public Optional<Course> findByCourseId(int id){
         String sql = "SELECT * FROM courses WHERE id = ?";
         try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setInt(1, id);
             try (ResultSet resultSet = preparedStatement.executeQuery()) {
                 if (resultSet.next()) return Optional.of(mapRow(resultSet));
             }
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
         return Optional.empty();
     }
 
-    public List<Course> listAll() throws SQLException {
+    public Optional<Course> findCourseByCode(String code){
+        String sql = "SELECT * FROM courses WHERE course_code = ?";
+        try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+            preparedStatement.setString(1, code);
+            try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                if (resultSet.next()) return Optional.of(mapRow(resultSet));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return Optional.empty();
+    }
+
+    public List<Course> listAll(){
         List<Course> list = new ArrayList<>();
         String sql = "SELECT * FROM courses ORDER BY title";
+
         try(Statement statement = connection.createStatement();
             ResultSet resultSet = statement.executeQuery(sql)) {
             while (resultSet.next()) list.add(mapRow(resultSet));
+
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
         return list;
     }
 
-    /*
-     * before deleting -> must check enrollments - cannot delete if enrollment exists (via service or DAO call)..yet to implement - goes to EnrollmentService
-     */
-    public int delete(int id) throws SQLException {
+
+    public int delete(int id){
         String sql = "DELETE FROM courses WHERE id = ?";
         try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setInt(1, id);
             return preparedStatement.executeUpdate(); // executeUpdate always returns no. of rows affected which is always an int
+
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
+        return -1;
     }
 
-    private Course mapRow(ResultSet resultSet) throws SQLException {
-        return new Course(
-                resultSet.getInt("id"),
-                resultSet.getString("code"),
-                resultSet.getString("title"),
-                resultSet.getInt("capacity")
-        );
+    private Course mapRow(ResultSet resultSet){
+        try {
+            return new Course(
+                    resultSet.getInt("id"),
+                    resultSet.getString("code"),
+                    resultSet.getString("title"),
+                    resultSet.getInt("capacity")
+            );
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null; // not sure abt the null
     }
 }
 

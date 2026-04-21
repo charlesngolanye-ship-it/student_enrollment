@@ -2,7 +2,7 @@ package com.charlesngolanye.studentenrollment.model;
 
 public class Course {
     private int id;
-    private final String code;
+    private String code;
     private String title;
     private int capacity;
 
@@ -13,6 +13,14 @@ public class Course {
         this.capacity = capacity;
     }
 
+    public Course(String code, String title, int capacity) {
+        this.code = code;
+        this.title = title;
+        this.capacity = capacity;
+    }
+
+
+    public Course(){}
 
     public int getId() {
         return id;
