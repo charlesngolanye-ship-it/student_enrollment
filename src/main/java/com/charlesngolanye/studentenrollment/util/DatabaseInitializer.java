@@ -4,11 +4,10 @@ import com.charlesngolanye.studentenrollment.dao.CourseDAO;
 import com.charlesngolanye.studentenrollment.dao.EnrollmentDAO;
 import com.charlesngolanye.studentenrollment.dao.StudentDAO;
 
-import java.sql.SQLException;
-
 public class DatabaseInitializer {
 
-    public static void databaseInitializer(StudentDAO studentDAO, CourseDAO courseDAO, EnrollmentDAO enrollmentDAO) throws SQLException {
+    // BUG FIX: was declared "throws SQLException" but all three DAOs catch their own SQLExceptions internally
+    public static void databaseInitializer(StudentDAO studentDAO, CourseDAO courseDAO, EnrollmentDAO enrollmentDAO) {
         studentDAO.createTable();
         courseDAO.createTable();
         enrollmentDAO.createTable();

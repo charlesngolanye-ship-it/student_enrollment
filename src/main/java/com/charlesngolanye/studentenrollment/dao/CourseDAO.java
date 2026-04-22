@@ -58,7 +58,8 @@ public class CourseDAO {
     }
 
     public Optional<Course> findCourseByCode(String code){
-        String sql = "SELECT * FROM courses WHERE course_code = ?";
+        // BUG FIX: column is named "code", not "course_code" — always returned empty before
+        String sql = "SELECT * FROM courses WHERE code = ?";
         try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setString(1, code);
             try (ResultSet resultSet = preparedStatement.executeQuery()) {

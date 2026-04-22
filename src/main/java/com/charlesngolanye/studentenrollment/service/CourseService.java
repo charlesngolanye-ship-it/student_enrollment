@@ -2,11 +2,9 @@ package com.charlesngolanye.studentenrollment.service;
 
 import com.charlesngolanye.studentenrollment.dao.CourseDAO;
 import com.charlesngolanye.studentenrollment.model.Course;
-import com.charlesngolanye.studentenrollment.model.Enrollment;
 
-
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public class CourseService {
     private final CourseDAO courseDAO;
@@ -16,28 +14,25 @@ public class CourseService {
     }
 
     public void addCourse(Course course) {
-            courseDAO.save( course);
+        courseDAO.save(course);
     }
 
-    public List<Course> courseList (Course course) {
-        List<Course> courseList = new ArrayList<>();
-            courseList = courseDAO.listAll();
-
-        return courseList;
+    // BUG FIX: old method had an unused Course parameter and a redundant local variable
+    public List<Course> courseList() {
+        return courseDAO.listAll();
     }
 
-    public int findCourseById(int id) {
-            courseDAO.findByCourseId(id);
-
-        return id;
+    // BUG FIX: old method ignored the DAO result and returned the raw int id
+    public Optional<Course> findCourseById(int id) {
+        return courseDAO.findByCourseId(id);
     }
 
-    public void deleteCourse (int id, Enrollment enrollment)  {
-        int courseIdToDelete = findCourseById(id);
+    public Optional<Course> findCourseByCode(String code) {
+        return courseDAO.findCourseByCode(code);
+    }
 
-            // Cannot delete a course with active enrollments
-        if (courseIdToDelete != enrollment.getCourseId()) {
-                courseDAO.delete(id);
-        }
+    // NOTE: enrollment check before delete is in EnrollmentService (cross-DAO concern)
+    public int deleteCourse(int id) {
+        return courseDAO.delete(id);
     }
 }
